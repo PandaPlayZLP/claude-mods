@@ -1,0 +1,27 @@
+merge-gate/tests/register.test.ts
+  s_ff2c51ca4458b8::t_2ab32abc1e5833 89-113
+  s_ff2c51ca4458b8::t_928f33e7b3273a 41-42
+merge-gate/hooks/register.ts
+  s_ff2c51ca4458b8::t_978507c6adb7ee 123-124
+  s_ff2c51ca4458b8::t_aebfc6353a028a 30-51,54
+.claude-plugin/marketplace.json
+  s_ff2c51ca4458b8::t_52f8bc89d88fb7 28
+merge-gate/.claude-plugin/plugin.json
+  s_ff2c51ca4458b8::t_555dc3fe59d1f8 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5aa18dc1c892cc0d9fb0b22a93a602adee324229",
+  "prompts": {},
+  "sessions": {
+    "s_ff2c51ca4458b8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1dcbc3e1-2f0a-49b3-9ace-ac355177522d",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Tino Dillmann <dillmann@paia-intelligence.com>"
+    }
+  }
+}

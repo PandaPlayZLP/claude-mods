@@ -1,0 +1,31 @@
+merge-gate/tests/register.test.ts
+  s_ff2c51ca4458b8::t_a333c6814fa1ce 114-129
+  s_ff2c51ca4458b8::t_2ab32abc1e5833 89-113
+  s_ff2c51ca4458b8::t_928f33e7b3273a 41-42
+.claude-plugin/marketplace.json
+  s_ff2c51ca4458b8::t_52f8bc89d88fb7 28
+merge-gate/hooks/register.ts
+  s_ff2c51ca4458b8::t_aebfc6353a028a 37,39-46,48-52,54-57,60
+  s_ff2c51ca4458b8::t_45a50beb06553b 47
+  s_ff2c51ca4458b8::t_19da686292f081 53
+  s_ff2c51ca4458b8::t_978507c6adb7ee 129-130
+  s_ff2c51ca4458b8::t_5c792844395db1 30-36,38
+merge-gate/.claude-plugin/plugin.json
+  s_ff2c51ca4458b8::t_555dc3fe59d1f8 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9a145f94a88fef15287aa8a146fd3e7162c2ec9c",
+  "prompts": {},
+  "sessions": {
+    "s_ff2c51ca4458b8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1dcbc3e1-2f0a-49b3-9ace-ac355177522d",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": null
+    }
+  }
+}

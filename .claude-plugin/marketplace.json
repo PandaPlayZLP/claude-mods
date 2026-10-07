@@ -25,7 +25,7 @@
     {
       "name": "merge-gate",
       "source": "./merge-gate",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "description": "Denies a merge unless the latest human message says merge; ship, push and deploy do not count."
     },
     {

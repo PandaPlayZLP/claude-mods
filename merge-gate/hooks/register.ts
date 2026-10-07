@@ -10,12 +10,16 @@ const ENABLED_KEY = 'merge-gate:enabled'
 const HUMAN_ORIGINS: readonly string[] = ['composer', 'bridge', 'sdk']
 const TRUNK = ['main', 'master']
 
-const GIT = String.raw`(^|[\s&;|('"])git(\s+-\S+(\s+\S+)?)*\s+`
-const PR_MERGE = new RegExp(String.raw`(pulls/[0-9]+/merge|merge_requests/[0-9]+/merge|(^|[\s&;|('"])["']?gh["']?\s+pr\s+merge(\s|$|["'])|(^|[\s&;|('"])gh\s+api\s[^|;&]*/merge(\s|$|["']))`, 'm')
+// gh or git counts after any character that cannot extend a command name: a path (/usr/bin/gh), an
+// alias-skipping backslash (\gh), zsh's =gh and &! operator, quotes, operators.
+const GIT = String.raw`(^|[^\w.-])git["']?(\s+-\S+(\s+\S+)?)*\s+`
+const PR_MERGE = new RegExp(String.raw`(pulls/[0-9]+/merge|merge_requests/[0-9]+/merge|(^|[^\w.-])["']?gh["']?\s+pr\s+merge(\s|$|["'])|(^|[^\w.-])gh\s+api\s[^|;&]*/merge(\s|$|["']))`, 'm')
 const GIT_MERGE = new RegExp(GIT + String.raw`merge(\s|$|["'])`, 'm')
 const GIT_MERGE_LOCAL = new RegExp(GIT + String.raw`merge\s+--(abort|continue|quit)(\s|$)`, 'm')
 const GIT_PUSH = new RegExp(GIT + String.raw`push(\s|$|["'])`, 'm')
-const INERT = /^(echo|printf|grep|rg|ag|cat|less|head|tail)\b|^git(\s+-\S+(\s+\S+)?)*\s+(commit|log|show|grep)\b/
+const INERT = /^(echo|printf|grep|rg|ag|cat|less|head|tail)(?=\s|$)|^git(\s+-\S+(\s+\S+)?)*\s+(commit|log|show|grep)(?=\s|$)/
+// Only unquoted env prefixes are stripped: X="1 echo" gh … must not read as an echo.
+const ENV_PREFIX = /^[\s(]*(\w+=[^\s"'\\]*\s+)*/
 const GIT_VALUED = ['-C', '-c', '--git-dir', '--work-tree', '--namespace']
 const SAYS_MERGE = /\bmerge\b/i
 const NEGATED = /\b(don'?t|do not|never|no|not)\s+(\w+\s+)?merge\b/i
@@ -27,11 +31,38 @@ let latest: string | undefined
 let grantUses = 0
 let enabled = true
 
+// The shell runs code inside quotes ($(..), ${..}, backticks) or ends a quote where this tracker
+// would not ($'..', comments, heredocs), and zsh adds =(..). With any $ ` # << <( >( =( present, or
+// an unbalanced quote, quotes are ignored and the command is cut at every operator and substitution.
+const QUOTE_UNSAFE = /[$`#]|<<|[<>=]\(/
+const SPLIT_ALL = /&&|\|\||;|\||&|\n|\$\(|`|[<>=]\(/
+
+// Splits on && || ; | & and newlines outside quotes, so `grep "a|gh pr merge"` stays one inert segment.
+const segments = (command: string): string[] => {
+  if (QUOTE_UNSAFE.test(command)) return command.split(SPLIT_ALL)
+  const out: string[] = []
+  let quote: string | undefined
+  let start = 0
+  for (let i = 0; i < command.length; i++) {
+    const c = command[i]
+    if (c === '\\' && quote !== "'") { i++; continue }
+    if (quote) { if (c === quote) quote = undefined; continue }
+    if (c === '"' || c === "'") { quote = c; continue }
+    const width = command.startsWith('&&', i) || command.startsWith('||', i) ? 2 : c === ';' || c === '|' || c === '&' || c === '\n' ? 1 : 0
+    if (width === 0) continue
+    out.push(command.slice(start, i))
+    i += width - 1
+    start = i + 1
+  }
+  if (quote) return command.split(SPLIT_ALL)
+  out.push(command.slice(start))
+  return out
+}
+
 // Only a segment that prints or records text is dropped; a quoted merge anywhere else (bash -c, eval) runs.
 const executable = (command: string) =>
-  command
-    .split(/&&|\|\||;|\||\n/)
-    .filter(seg => !INERT.test(seg.replace(/^[\s(]*(\w+=\S*\s+)*/, '')))
+  segments(command)
+    .filter(seg => !INERT.test(seg.replace(ENV_PREFIX, '')))
     .join(' ; ')
 
 const saysMerge = (text: string) => {
@@ -51,7 +82,7 @@ const pushTargets = (command: string): string[] | undefined => {
   const tokens = command.replace(/\n/g, ' ; ').split(/\s+/).filter(Boolean)
   const targets: string[] = []
   for (let i = 0; i < tokens.length; i++) {
-    if (tokens[i] !== 'git') continue
+    if (tokens[i]?.replace(/["']/g, '').replace(/^.*[^\w.-]/, '') !== 'git') continue
     i++
     while (tokens[i]?.startsWith('-')) i += GIT_VALUED.includes(tokens[i] ?? '') ? 2 : 1
     if (tokens[i] !== 'push') continue
@@ -99,8 +130,8 @@ const latestHuman = async ($: EngineInterface): Promise<string | undefined> => {
 }
 
 const DENIED = [
-  'merge-gate: Yash has not said merge in his latest message. Ask him, or he says \'merge\' and this passes.',
-  '"ship", "push", "deploy" and "land" do not count: stop at the push, report the PR state, and let him merge.',
+  'merge-gate: the user has not said merge in their latest message. Ask them, or they say \'merge\' and this passes.',
+  '"ship", "push", "deploy" and "land" do not count: stop at the push, report the PR state, and let them merge.',
 ].join('\n')
 
 // The first thing anyone does when a mod misbehaves is try to turn it off. `CLAUDE_MODS_DISABLE=all`,

@@ -38,7 +38,8 @@ describe('merge-gate', () => {
     await $.session.start(session)
     await $.prompt.submit(prompt('open the PR and push it up'))
     const r = await bash($, 'gh pr merge 12 --squash')
-    expect(r.deny).toMatch(/Yash has not said merge in his latest message/)
+    expect(r.deny).toMatch(/the user has not said merge in their latest message/)
+    expect(r.deny).not.toMatch(/Yash|\bhis\b|\bhim\b|\bhe\b/)
     expect(w.ran).toEqual([])
   })
 
@@ -83,6 +84,57 @@ describe('merge-gate', () => {
     const inert = ['echo "gh pr merge"', 'grep "gh pr merge" notes.md', 'git commit -m "gh pr merge 12 then release"', 'git -C repo merge --abort', 'git merge --abort', 'git merge main', 'git push -u origin feature', 'gh pr view 12']
     for (const command of inert) expect((await bash($, command)).deny, command).toBe(undefined)
     expect(w.ran.length).toBe(inert.length)
+  })
+
+  test('a | or ; inside quotes does not split the command', async ($, on) => {
+    const w = world(on, { branch: 'feature' })
+    await $.session.start(session)
+    await $.prompt.submit(prompt('ship it'))
+    const inert = ['grep -n "merge hook\\|gh pr merge" notes.md | head -30', "rg 'a|gh pr merge' .", 'echo "x; gh pr merge 12"', 'git commit -m "a | gh pr merge 12"']
+    for (const command of inert) expect((await bash($, command)).deny, command).toBe(undefined)
+    expect(w.ran.length).toBe(inert.length)
+  })
+
+  test('a quoted | or ; does not hide a real merge after it', async ($, on) => {
+    world(on)
+    await $.session.start(session)
+    await $.prompt.submit(prompt('ship it'))
+    for (const command of ['echo "a;b|c" ; gh pr merge 12', 'grep "x|y" notes.md && gh pr merge 12', 'echo \'a\\\' ; gh pr merge 12'])
+      expect((await bash($, command)).deny, command).toMatch(/has not said merge/)
+  })
+
+  test('an unbalanced quote falls back to splitting everywhere', async ($, on) => {
+    world(on)
+    await $.session.start(session)
+    await $.prompt.submit(prompt('ship it'))
+    for (const command of ["echo it's ; gh pr merge 12", 'echo "unterminated | gh pr merge 12'])
+      expect((await bash($, command)).deny, command).toMatch(/has not said merge/)
+  })
+
+  test('code that runs inside quotes, or quotes bash ends early, does not hide a merge', async ($, on) => {
+    world(on)
+    await $.session.start(session)
+    await $.prompt.submit(prompt('ship it'))
+    const hidden = [
+      "echo $'\\'' ; gh pr merge 12\necho '",
+      'echo "$(true; gh pr merge 12)"',
+      'echo "$(gh pr merge 12)"',
+      'echo "`gh pr merge 12`"',
+      "echo hi # '\ngh pr merge 12\n# '",
+      "cat <<EOF\n'\nEOF\ngh pr merge 12\n# '",
+      'echo x & gh pr merge 12',
+    ]
+    for (const command of hidden) expect((await bash($, command)).deny, command).toMatch(/has not said merge/)
+  })
+
+  test('quoted env prefixes, zsh =(..), command paths and lookalike command words do not hide a merge', async ($, on) => {
+    world(on)
+    await $.session.start(session)
+    await $.prompt.submit(prompt('ship it'))
+    const hidden = ['X="1 echo" gh pr merge 12', "X='a cat' gh pr merge 12", 'echo =(gh pr merge 12)', '/usr/bin/gh pr merge 12', '\\gh pr merge 12', 'cat/../x gh pr merge 12', 'echo "${x:-"a"}" ; gh pr merge 12', 'echo &!gh pr merge 12', '=gh pr merge 12']
+    for (const command of hidden) expect((await bash($, command)).deny, command).toMatch(/has not said merge/)
+    for (const command of ['FOO=bar echo "gh pr merge"', 'grep -rn "gh pr merge" docs | head'])
+      expect((await bash($, command)).deny, command).toBe(undefined)
   })
 
   test('git merge while on main is a merge', async ($, on) => {
@@ -133,6 +185,9 @@ describe('merge-gate', () => {
     await $.session.start(session)
     await $.prompt.submit(prompt('push it'))
     expect((await bash($, 'git -C repo push -f origin feature:main')).deny).toMatch(/has not said merge/)
+    expect((await bash($, '/usr/bin/git push origin feature:main')).deny).toMatch(/has not said merge/)
+    expect((await bash($, '\\git push origin feature:main')).deny).toMatch(/has not said merge/)
+    expect((await bash($, '"git" push origin feature:main')).deny).toMatch(/has not said merge/)
   })
 
   test('gh api merge endpoints are merges', async ($, on) => {

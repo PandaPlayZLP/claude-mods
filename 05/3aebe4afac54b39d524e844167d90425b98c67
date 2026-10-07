@@ -1,0 +1,38 @@
+merge-gate/.claude-plugin/plugin.json
+  s_ff2c51ca4458b8::t_555dc3fe59d1f8 3
+.claude-plugin/marketplace.json
+  s_ff2c51ca4458b8::t_52f8bc89d88fb7 28
+merge-gate/hooks/register.ts
+  s_ff2c51ca4458b8::t_978507c6adb7ee 132-133
+  s_ff2c51ca4458b8::t_aebfc6353a028a 40,42-49,51-55,57-60,63
+  s_ff2c51ca4458b8::t_d52e41dd5ab652 84
+  s_ff2c51ca4458b8::t_a88971551d23bb 13-15
+  s_ff2c51ca4458b8::t_41e50ac2490edd 64
+  s_ff2c51ca4458b8::t_19da686292f081 56
+  s_ff2c51ca4458b8::t_45a50beb06553b 50
+  s_ff2c51ca4458b8::t_801b4240aac298 19-21
+  s_ff2c51ca4458b8::t_5c792844395db1 38-39,41
+  s_ff2c51ca4458b8::t_655a28727b75e1 33-37
+merge-gate/tests/register.test.ts
+  s_ff2c51ca4458b8::t_928f33e7b3273a 41-42
+  s_ff2c51ca4458b8::t_2ab32abc1e5833 89-113
+  s_ff2c51ca4458b8::t_10e93232ea7b9e 188-189
+  s_ff2c51ca4458b8::t_a333c6814fa1ce 114-129
+  s_ff2c51ca4458b8::t_fe684f9a583bf9 130-139
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "053aebe4afac54b39d524e844167d90425b98c67",
+  "prompts": {},
+  "sessions": {
+    "s_ff2c51ca4458b8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1dcbc3e1-2f0a-49b3-9ace-ac355177522d",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": null
+    }
+  }
+}
